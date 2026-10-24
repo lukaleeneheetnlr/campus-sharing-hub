@@ -184,3 +184,4 @@ h1,h2,h3,h4,.section h2,.hero h1{color:var(--ink);font-weight:800}
   .nav-profile-button{padding:4px 6px;min-height:40px}
   .nav-profile-button > span:not(.nav-profile-avatar){display:none}  /* avatar only; label kept for screen readers via aria-label */
 }
+#addr_full{min-height:64px;resize:vertical}

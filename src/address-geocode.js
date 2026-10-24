@@ -100,3 +100,52 @@ export async function geocodeThaiAddress(raw, { signal } = {}) {
   }
   return null;
 }
+
+// ---- Single free-text address ----------------------------------------------
+// Pulls tambon / amphoe / province / moo / house no. out of one Thai address string,
+// e.g. "99/1 หมู่ 4 ต.คลองหนึ่ง อ.คลองหลวง จ.ปทุมธานี 12120".
+export function parseThaiAddress(text) {
+  const s = String(text || '').replace(/\s+/g, ' ').trim();
+  const grab = re => (s.match(re)?.[1] || '').trim();
+  const stop = '(?=\\s|$|,)';
+  const out = {
+    houseNo: grab(/(?:บ้านเลขที่|เลขที่)\s*(\d+(?:\/\d+)?)/) || grab(/^(\d+(?:\/\d+)?)(?=\s|$)/),
+    moo: grab(/(?:หมู่ที่|หมู่|ม\.)\s*(\d+)/),
+    subdistrict: grab(new RegExp(`(?:ตำบล|ต\\.|แขวง)\\s*([^\\s,]+?)${stop}`)),
+    district: grab(new RegExp(`(?:อำเภอ|อ\\.|เขต)\\s*([^\\s,]+?)${stop}`)),
+    province: grab(new RegExp(`(?:จังหวัด|จ\\.)\\s*([^\\s,]+?)${stop}`))
+  };
+  if (!out.province && /(กรุงเทพ|กทม)/.test(s)) out.province = 'กรุงเทพมหานคร';
+  return normalizeAddress(out);
+}
+
+// Geocode a free-text address: structured attempt first (when the text names amphoe/province),
+// then the raw text, then the text with its leading words removed one by one.
+export async function geocodeFreeTextAddress(text, { signal } = {}) {
+  const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  if (raw.length < 4) return null;
+  const parsed = parseThaiAddress(raw);
+  if (hasLocatableAddress(parsed)) {
+    const hit = await geocodeThaiAddress(parsed, { signal });
+    if (hit) return hit;
+  }
+  const words = raw.replace(/\b\d{5}\b/g, '').split(' ').filter(Boolean);
+  for (let start = 0; start < words.length; start++) {
+    if (signal?.aborted) return null;
+    const q = words.slice(start).join(' ');
+    if (q.length < 3) break;
+    let results = cache.get(q);
+    if (!results) {
+      const params = new URLSearchParams({ format: 'jsonv2', countrycodes: 'th', limit: '1', 'accept-language': 'th', q });
+      results = await politeFetch(`${ENDPOINT}?${params.toString()}`, signal);
+      cache.set(q, results);
+    }
+    const hit = Array.isArray(results) ? results[0] : null;
+    if (hit) {
+      const level = start === 0 ? 'house' : start < words.length / 2 ? 'subdistrict' : 'district';
+      return { lat: Number(hit.lat), lng: Number(hit.lon), level, zoom: ZOOM[level], label: hit.display_name };
+    }
+    if (start >= 4) break; // keep within Nominatim's fair-use limits
+  }
+  return null;
+}

@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { DEFAULT_FEE_SETTINGS, computeServiceFee, rentDue, isValidPromptPayId, promptPayQrDataUrl } from './payment-helpers.js';
-import { ADDRESS_FIELDS, normalizeAddress, formatThaiAddress, hasLocatableAddress, geocodeThaiAddress } from './address-geocode.js';
+import { ADDRESS_FIELDS, formatThaiAddress, parseThaiAddress, geocodeFreeTextAddress } from './address-geocode.js';
 import { createMeetingPointPicker, createRouteMap, getCurrentPosition, googleMapsDirectionsUrl, formatDistance, formatDuration, toPoint, isPoint } from './meeting-map.js';
 let activeModalMap = null;
 
@@ -284,6 +284,7 @@ function fromDbListing(row) {
     tag: row.is_available ? 'สมาชิกลงประกาศ' : 'ไม่พร้อมให้เช่า', available: row.is_available,
     latitude: row.pickup_latitude == null ? null : Number(row.pickup_latitude),
     longitude: row.pickup_longitude == null ? null : Number(row.pickup_longitude),
+    addressText: row.address_text || '',
     address: {
       houseNo: row.address_house_no || '', moo: row.address_moo || '', subdistrict: row.address_subdistrict || '',
       district: row.address_district || '', province: row.address_province || ''
@@ -504,7 +505,7 @@ function listingDetail(id) {
     ? '<div class="form-footnote">นี่คือประกาศของคุณ จัดการสถานะได้จาก “บัญชีของฉัน”</div>'
     : `${liveMode?`<button class="btn btn-secondary" style="width:100%;margin-top:8px" data-action="listing-chat" data-id="${escapeHTML(item.id)}">แชตกับเจ้าของ</button><button class="btn btn-secondary" style="width:100%;margin-top:8px" data-action="report-listing" data-id="${escapeHTML(item.id)}" data-owner-id="${escapeHTML(item.owner_id)}">รายงานประกาศหรือผู้ใช้</button>`:''}<button class="btn btn-primary" style="width:100%;margin-top:8px" data-action="book" data-id="${escapeHTML(item.id)}">ขอจองรายการนี้</button>`;
   const ownerProfile = `${item.ownerAvatar?`<img class="avatar" src="${escapeHTML(item.ownerAvatar)}" alt="" loading="lazy">`:''}<span>${escapeHTML(item.owner || 'สมาชิก')}</span>`;
-  const html = `<div class="detail-layout"><img class="detail-img" src="${escapeHTML(item.image || '')}" alt="${escapeHTML(item.title)}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80'"><div class="detail-copy"><span class="badge-demo">${escapeHTML(item.categoryLabel || 'รายการ')}</span><h3 style="margin-top:10px">${escapeHTML(item.title)}</h3><div class="listing-location">⌖ ${escapeHTML(item.location || 'ยังไม่ได้ระบุตำแหน่ง')}</div>${formatThaiAddress(item.address)?`<div class="listing-location detail-address">🏠 ${escapeHTML(formatThaiAddress(item.address))}</div>`:''}<div class="detail-price">฿${formatBaht(item.price)} <small>/ วัน</small></div><div class="detail-row"><span>เงินมัดจำ</span><strong>฿${formatBaht(item.deposit || 0)}</strong></div><div class="detail-row"><span>เจ้าของรายการ</span><strong class="owner-profile">${ownerProfile}</strong></div><p>${escapeHTML(item.ownerBio || 'ยังไม่ได้ระบุรายละเอียด')}</p><div class="detail-row"><span>สภาพของ</span><strong>${escapeHTML(item.condition || 'ยังไม่ได้ระบุสภาพ')}</strong></div><p>${escapeHTML(item.description || 'ยังไม่ได้ระบุรายละเอียด')}</p>${button}<p class="form-footnote">คำขอจองจะส่งให้เจ้าของอนุมัติหรือปฏิเสธ ยังไม่มีการชำระเงินจริง</p></div></div><section class="listing-reviews" id="listingReviews" aria-live="polite"><h3>รีวิวจากผู้เช่า</h3><div class="account-empty">กำลังโหลดรีวิว…</div></section>`;
+  const html = `<div class="detail-layout"><img class="detail-img" src="${escapeHTML(item.image || '')}" alt="${escapeHTML(item.title)}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80'"><div class="detail-copy"><span class="badge-demo">${escapeHTML(item.categoryLabel || 'รายการ')}</span><h3 style="margin-top:10px">${escapeHTML(item.title)}</h3><div class="listing-location">⌖ ${escapeHTML(item.location || 'ยังไม่ได้ระบุตำแหน่ง')}</div>${listingAddressText(item)?`<div class="listing-location detail-address">🏠 ${escapeHTML(listingAddressText(item))}</div>`:''}<div class="detail-price">฿${formatBaht(item.price)} <small>/ วัน</small></div><div class="detail-row"><span>เงินมัดจำ</span><strong>฿${formatBaht(item.deposit || 0)}</strong></div><div class="detail-row"><span>เจ้าของรายการ</span><strong class="owner-profile">${ownerProfile}</strong></div><p>${escapeHTML(item.ownerBio || 'ยังไม่ได้ระบุรายละเอียด')}</p><div class="detail-row"><span>สภาพของ</span><strong>${escapeHTML(item.condition || 'ยังไม่ได้ระบุสภาพ')}</strong></div><p>${escapeHTML(item.description || 'ยังไม่ได้ระบุรายละเอียด')}</p>${button}<p class="form-footnote">คำขอจองจะส่งให้เจ้าของอนุมัติหรือปฏิเสธ ยังไม่มีการชำระเงินจริง</p></div></div><section class="listing-reviews" id="listingReviews" aria-live="polite"><h3>รีวิวจากผู้เช่า</h3><div class="account-empty">กำลังโหลดรีวิว…</div></section>`;
   openModal('รายละเอียดรายการ','ตรวจสอบข้อมูลก่อนส่งคำขอจอง',html,true);
   if (liveMode) void loadListingReviews(item.id);
 }
@@ -817,21 +818,22 @@ async function openListingForm(listingId = null) {
     <div class="form-field"><label for="newOwner">ชื่อที่แสดง <span class="hint">(ไม่บังคับ)</span></label><input id="newOwner" name="owner" maxlength="30" value="${escapeHTML(editItem?.owner || ownerDefault)}" ${liveMode?'readonly':''} placeholder="เช่น มายด์"><span class="hint">${liveMode?'ใช้ชื่อจากบัญชีที่สมัครไว้':'ชื่อเจ้าของในข้อมูลตัวอย่าง'}</span></div>
     <div class="form-field full"><label for="newLocation">โซนนัดรับโดยประมาณ <span class="hint">(ไม่บังคับ)</span></label><input id="newLocation" name="location" maxlength="100" value="${escapeHTML(editItem?.location || '')}" placeholder="เช่น อาคารกิจกรรมนักศึกษา"></div>
     ${addressFieldsMarkup(editItem)}
-    ${liveMode?`<input id="newLatitude" name="latitude" type="hidden" value="${editItem?.latitude ?? ''}"><input id="newLongitude" name="longitude" type="hidden" value="${editItem?.longitude ?? ''}"><div class="form-field full"><div class="address-locate-row"><button type="button" class="btn btn-secondary btn-small" data-action="locate-address">📍 หาตำแหน่งจากที่อยู่</button><small id="addressLocateStatus" aria-live="polite">กรอกตำบล อำเภอ และจังหวัด ระบบจะปักหมุดให้อัตโนมัติ แตะแผนที่เพื่อปรับหมุดได้</small></div><div id="locationPicker" class="location-picker" aria-label="แผนที่ตำแหน่งจากที่อยู่"></div><span class="hint">ที่อยู่และหมุดนี้จะแสดงในหน้าประกาศ ระบบไม่ขอตำแหน่งอุปกรณ์ของคุณ</span></div>`:''}
+    ${liveMode?`<input id="newLatitude" name="latitude" type="hidden" value="${editItem?.latitude ?? ''}"><input id="newLongitude" name="longitude" type="hidden" value="${editItem?.longitude ?? ''}"><div class="form-field full"><div class="address-locate-row"><button type="button" class="btn btn-secondary btn-small" data-action="locate-address">📍 หาตำแหน่งจากที่อยู่</button><small id="addressLocateStatus" aria-live="polite">กรอกที่อยู่แล้วระบบจะปักหมุดให้อัตโนมัติ แตะแผนที่เพื่อปรับหมุดได้</small></div><div id="locationPicker" class="location-picker" aria-label="แผนที่ตำแหน่งจากที่อยู่"></div><span class="hint">ที่อยู่และหมุดนี้จะแสดงในหน้าประกาศ ระบบไม่ขอตำแหน่งอุปกรณ์ของคุณ</span></div>`:''}
     <div class="form-field full"><label for="newCondition">สภาพของ <span class="hint">(ไม่บังคับ)</span></label><input id="newCondition" name="condition" maxlength="120" value="${escapeHTML(editItem?.condition || '')}" placeholder="เช่น ใช้งานปกติ มีรอยเล็กน้อย"></div>
     <div class="form-field full"><label for="newDescription">รายละเอียด / อุปกรณ์ที่ให้มาด้วย <span class="hint">(ไม่บังคับ)</span></label><textarea id="newDescription" name="description" maxlength="500" placeholder="แจ้งตำหนิ เงื่อนไข และสิ่งที่ต้องตรวจสอบก่อนรับของ">${escapeHTML(editItem?.description || '')}</textarea></div>
     <div class="form-field full"><label for="newImage">อัปโหลดรูปภาพ (ไม่บังคับ)</label><input id="newImage" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" ${liveMode?'':'disabled'}><span class="hint">ไฟล์ JPG, PNG, WebP หรือ GIF · ขนาดไม่เกิน 5 MB · อัปโหลดเก็บไว้ใน Supabase Storage</span>${liveMode?'':'<span class="hint">ตั้งค่า Supabase ใน .env.local ก่อนใช้งานอัปโหลด</span>'}</div>
   </div><p class="form-footnote">ผู้ลงประกาศรับผิดชอบข้อมูล ราคา เงื่อนไข และความปลอดภัยในการส่งมอบสินค้า</p><div class="form-actions"><button type="button" class="btn btn-secondary" data-action="close">ยกเลิก</button><button type="submit" class="btn btn-primary">${mode === 'edit'?'บันทึกการแก้ไข':liveMode?'บันทึกประกาศ':'เพิ่มรายการตัวอย่าง'}</button></div></form>`);
   if (liveMode) { initializeLocationPicker(editItem); initAddressAutoLocate(); }
 }
+function listingAddressText(item) {
+  return String(item?.addressText || '').trim() || formatThaiAddress(item?.address || {});
+}
 function addressFieldsMarkup(editItem) {
-  const a = editItem?.address || {};
-  return `<fieldset class="form-field full address-fieldset"><legend>ที่อยู่ที่นัดรับ <span class="hint">(ไม่บังคับ)</span></legend><div class="address-grid">${ADDRESS_FIELDS.map(([kind,,label,max]) => `<div class="form-field address-${kind}"><label for="addr_${kind}">${label}</label><input id="addr_${kind}" name="addr_${kind}" maxlength="${max}" value="${escapeHTML(a[kind] || '')}" placeholder="${{houseNo:'เช่น 99/1',moo:'เช่น 4',subdistrict:'เช่น คลองหนึ่ง',district:'เช่น คลองหลวง',province:'เช่น ปทุมธานี'}[kind]}" autocomplete="off"></div>`).join('')}</div></fieldset>`;
+  return `<div class="form-field full"><label for="addr_full">ที่อยู่ที่นัดรับ <span class="hint">(ไม่บังคับ)</span></label><textarea id="addr_full" name="address_text" rows="2" maxlength="300" placeholder="เช่น 99/1 หมู่ 4 ต.คลองหนึ่ง อ.คลองหลวง จ.ปทุมธานี">${escapeHTML(listingAddressText(editItem))}</textarea></div>`;
 }
 function readAddressFields(scope = document) {
-  const raw = {};
-  for (const [kind] of ADDRESS_FIELDS) raw[kind] = scope.querySelector(`#addr_${kind}`)?.value || '';
-  return normalizeAddress(raw);
+  const full = String(scope.querySelector('#addr_full')?.value || '').replace(/\s+/g, ' ').trim();
+  return { full, parsed:parseThaiAddress(full) };
 }
 let addressLocateTimer = null;
 let addressLocateController = null;
@@ -839,15 +841,15 @@ let lastLocatedAddress = '';
 async function locateAddressOnMap(force = false) {
   const status = $('#addressLocateStatus');
   const address = readAddressFields();
-  const key = formatThaiAddress(address);
-  if (!hasLocatableAddress(address)) { if (force && status) status.textContent = 'กรอกอย่างน้อยอำเภอ/เขต และจังหวัดก่อน'; return; }
+  const key = address.full;
+  if (key.length < 4) { if (force && status) status.textContent = 'กรอกที่อยู่ก่อน เช่น ตำบล อำเภอ จังหวัด'; return; }
   if (!force && key === lastLocatedAddress) return;
   addressLocateController?.abort();
   const controller = new AbortController();
   addressLocateController = controller;
   if (status) status.textContent = 'กำลังค้นหาตำแหน่งจากที่อยู่…';
   try {
-    const hit = await geocodeThaiAddress(address, { signal:controller.signal });
+    const hit = await geocodeFreeTextAddress(address.full, { signal:controller.signal });
     if (controller.signal.aborted || !$('#locationPicker')) return;
     if (!hit) { if (status) status.textContent = 'ไม่พบตำแหน่งจากที่อยู่นี้ ลองตรวจตัวสะกด หรือแตะแผนที่เพื่อปักหมุดเอง'; return; }
     lastLocatedAddress = key;
@@ -864,13 +866,11 @@ async function locateAddressOnMap(force = false) {
   }
 }
 function initAddressAutoLocate() {
-  lastLocatedAddress = formatThaiAddress(readAddressFields());
-  for (const [kind] of ADDRESS_FIELDS) {
-    $(`#addr_${kind}`)?.addEventListener('input', () => {
-      clearTimeout(addressLocateTimer);
-      addressLocateTimer = setTimeout(() => void locateAddressOnMap(false), 1200);
-    });
-  }
+  lastLocatedAddress = readAddressFields().full;
+  $('#addr_full')?.addEventListener('input', () => {
+    clearTimeout(addressLocateTimer);
+    addressLocateTimer = setTimeout(() => void locateAddressOnMap(false), 1500);
+  });
 }
 async function handleRequestSubmit(form) {
   const data = Object.fromEntries(new FormData(form).entries());
@@ -1461,7 +1461,10 @@ async function handleListingSubmit(form) {
   const hasLongitude = longitudeText !== '';
   const imageFile = data.image instanceof File && data.image.size ? data.image : null;
   const address = readAddressFields(form);
-  const addressColumns = Object.fromEntries(ADDRESS_FIELDS.map(([kind,column]) => [column, address[kind] || null]));
+  const addressColumns = {
+    address_text: address.full || null,
+    ...Object.fromEntries(ADDRESS_FIELDS.map(([kind,column]) => [column, address.parsed[kind] || null]))
+  };
   if (title.length < 2 || title.length > 100 || !categoryLabels[category] || !Number.isFinite(price) || price <= 0 || price > 100000) {
     return showToast('กรุณาระบุชื่อสิ่งของ หมวดหมู่ และค่าเช่าต่อวันให้ถูกต้อง');
   }
@@ -1507,7 +1510,7 @@ async function handleListingSubmit(form) {
         });
       }
       let { data: savedRow, error } = await query.select('id').maybeSingle();
-      if (error && /address_(house_no|moo|subdistrict|district|province)/i.test(String(error.message || ''))) {
+      if (error && /address_(text|house_no|moo|subdistrict|district|province)/i.test(String(error.message || ''))) {
         // Database migration for address columns not installed yet: save the listing without the address.
         for (const column of Object.keys(addressColumns)) delete payload[column];
         const retry = mode === 'edit'
@@ -1554,7 +1557,7 @@ async function handleListingSubmit(form) {
   const newItem = {
     id:mode === 'edit' ? form.dataset.id : 'user-' + Date.now(),
     owner, title, category, categoryLabel:categoryLabels[category] || 'อื่น ๆ',
-    price, deposit, location, condition, description, address,
+    price, deposit, location, condition, description, address:address.parsed, addressText:address.full,
     initial:owner.slice(0,1), tag:'ประกาศใหม่ · เดโม',
     image:existingItem?.image || 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80',
     available:existingItem?.available ?? true
