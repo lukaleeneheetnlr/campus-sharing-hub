@@ -90,10 +90,11 @@
 
 /* ---------- cards: staggered pop-in + hover ---------- */
 .fx-reveal{opacity:0}
-.fx-reveal.fx-in{animation:cardIn .55s var(--ease-out) var(--fx-delay,0s) both}
+.fx-reveal.fx-in{opacity:1}
+.fx-reveal.fx-in{animation:cardIn .6s var(--ease-out) var(--fx-delay,0s) backwards}
 .fx-rise{opacity:0}
 .fx-rise.fx-in{animation:rise .55s var(--ease-out) var(--fx-delay,0s) both}
-.listing-card,.category-card,.how-card,.wanted-card,.account-row,.notification-item{transition:transform .32s var(--spring),box-shadow .3s ease}
+.listing-card,.category-card,.how-card,.wanted-card,.account-row,.notification-item{transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease}
 .listing-card:hover,.how-card:hover,.wanted-card:hover{transform:translateY(-6px) rotate(-.4deg)}
 .category-card:hover{transform:translateY(-4px)}
 .category-symbol{animation:bob 2.6s ease-in-out infinite}
@@ -104,9 +105,13 @@
 .category-card:hover .category-symbol{animation:wob .55s var(--spring)}
 .listing-card:hover .listing-image{transform:scale(1.06) rotate(.6deg)}
 .tag{animation:wiggle 2.4s ease-in-out infinite;transform-origin:20% 50%}
-.step-num{transition:transform .3s var(--spring)}
-.how-card.fx-in .step-num{animation:pop .45s var(--spring) calc(var(--fx-delay,0s) + .25s) both}
-.how-card:hover .step-num{animation:jump .7s var(--spring)}
+/* step numbers: entrance uses the separate `scale` property and hover uses `transform` with a
+   transition, so hovering never restarts the entrance animation and moving the mouse away eases back */
+@keyframes stepIn{0%{scale:.6;opacity:0}65%{scale:1.08;opacity:1}100%{scale:1;opacity:1}}
+.step-num{transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease;will-change:transform}
+.how-card.fx-reveal .step-num{opacity:0}
+.how-card.fx-in .step-num{animation:stepIn .6s cubic-bezier(.22,1,.36,1) calc(var(--fx-delay,0s) + .2s) both}
+.how-card:hover .step-num{transform:translateY(-4px) rotate(-6deg)}
 .trust-symbol{animation:bob 3.4s ease-in-out infinite}
 .availability-label span{animation:pulse-soft 1.8s ease-out infinite;border-radius:50%}
 .status-pill.fx-in{animation:stamp .55s var(--spring) both}
@@ -146,6 +151,6 @@
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
-  .fx-reveal,.fx-rise{opacity:1!important}
+  .fx-reveal,.fx-rise,.how-card .step-num{opacity:1!important}
   .fx-drift-layer,.fx-confetti,.fx-burst{display:none!important}
 }
