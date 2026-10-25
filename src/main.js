@@ -263,12 +263,12 @@ function setConnectionNotice() {
   box.hidden = liveMode;
   const footer = $('#footerNote');
   if (liveMode) {
-    box.style.background = '#e5e8f6'; box.style.borderColor = '#bfc5e4'; box.style.color = '#202a5d';
+    box.style.background = '#faf0e1'; box.style.borderColor = '#a6dbd4'; box.style.color = '#1c574f';
     box.textContent = 'เชื่อมต่อโหมดฐานข้อมูลแล้ว: ประกาศและการจองจะถูกเก็บใน Supabase';
     if (footer) footer.innerHTML = 'Campus Sharing Hub · Supabase MVP<br>ประกาศและคำขอจองบันทึกลงฐานข้อมูลกลาง ไม่มีการชำระเงินจริง';
     $('#listingSectionDescription').textContent = 'รายการจากสมาชิกที่พร้อมให้เช่า ค้นหาและส่งคำขอจองได้';
   } else {
-    box.style.background = '#e2e6ff'; box.style.borderColor = '#e9d8a6'; box.style.color = '#6b5310';
+    box.style.background = '#fff3e2'; box.style.borderColor = '#e9d8a6'; box.style.color = '#6b5310';
     box.innerHTML = 'เว็บไซต์ยังอยู่ใน <strong>โหมดตัวอย่าง</strong> เพราะยังไม่ได้ตั้งค่า Supabase — ข้อมูลที่สร้างจะอยู่ในเบราว์เซอร์นี้เท่านั้น เปิดไฟล์ <code>.env.example</code> และทำตามคู่มือ README เพื่อเปิดระบบจริง';
     if (footer) footer.innerHTML = 'Campus Sharing Hub · Prototype Demo<br>ข้อมูลรายการและธุรกรรมเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ยังไม่ใช่บริการเช่าจริง';
     $('#listingSectionDescription').textContent = 'รายการตัวอย่างสำหรับทดลองระบบ ราคาและข้อมูลเป็นข้อมูลสมมติ';

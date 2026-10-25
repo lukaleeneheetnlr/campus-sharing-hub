@@ -153,11 +153,11 @@ export function createRouteMap(element, destination, kind = 'pickup') {
       let result;
       try {
         const route = await fetchRoute(origin, destination, mode);
-        line = L.polyline(route.coordinates, { color: '#3f56cf', weight: 6, opacity: 0.85 }).addTo(map);
+        line = L.polyline(route.coordinates, { color: '#12a594', weight: 6, opacity: 0.85 }).addTo(map);
         result = { routed: true, distance: route.distance, duration: route.duration };
       } catch (error) {
         console.warn('คำนวณเส้นทางไม่สำเร็จ ใช้เส้นตรงแทน', error);
-        line = L.polyline([[origin.lat, origin.lng], [destination.lat, destination.lng]], { color: '#3f56cf', weight: 4, dashArray: '8 8' }).addTo(map);
+        line = L.polyline([[origin.lat, origin.lng], [destination.lat, destination.lng]], { color: '#12a594', weight: 4, dashArray: '8 8' }).addTo(map);
         result = { routed: false, distance: distanceMeters(origin, destination), duration: null };
       }
       map.fitBounds(line.getBounds(), { padding: [40, 40], maxZoom: 17 });
