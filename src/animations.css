@@ -1,0 +1,151 @@
+/* ------------------------------------------------------------------
+   Motion layer from the Borrow App design: page/section entrances,
+   staggered card pop-ins, bobbing & twinkling decorations, button
+   shine + springy press, marquee ribbon, toast/modal pops, bell ring,
+   confetti/burst on success. Everything is disabled for users who
+   prefer reduced motion.
+   ------------------------------------------------------------------ */
+:root{--spring:cubic-bezier(.34,1.5,.64,1);--ease-out:cubic-bezier(.2,.8,.2,1)}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float-y{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes float-y2{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(14deg)}}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-5px) rotate(3deg)}}
+@keyframes twinkle{0%,100%{transform:scale(.65) rotate(0);opacity:.5}50%{transform:scale(1.15) rotate(40deg);opacity:1}}
+@keyframes wave{0%,100%{transform:rotate(0)}50%{transform:rotate(-28deg)}}
+@keyframes pageIn{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes cardIn{0%{opacity:0;transform:translateY(24px) scale(.9)}70%{opacity:1;transform:translateY(-4px) scale(1.02)}100%{opacity:1;transform:none}}
+@keyframes wob{0%{transform:scale(1)}30%{transform:scale(1.25,.8)}55%{transform:scale(.88,1.15) rotate(-8deg)}80%{transform:scale(1.05) rotate(4deg)}100%{transform:scale(1)}}
+@keyframes pop{0%{transform:scale(.3)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes jump{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(0) scale(1.1,.86)}50%{transform:translateY(-14px) scale(.94,1.08)}75%{transform:translateY(0) scale(1.06,.92)}}
+@keyframes burst{0%{transform:translate(-50%,-50%) scale(.3) rotate(0);opacity:1}100%{transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(1) rotate(var(--rot));opacity:0}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,30px) scale(.8)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes drawerU{from{transform:translateY(105%)}to{transform:none}}
+@keyframes stamp{0%{transform:scale(2.6) rotate(-34deg);opacity:0}60%{transform:scale(.9) rotate(-6deg);opacity:1}80%{transform:scale(1.05) rotate(-2deg)}100%{transform:none}}
+@keyframes fall{0%{transform:translateY(-30px) rotate(0);opacity:1}100%{transform:translateY(105vh) rotate(620deg);opacity:.85}}
+@keyframes ring{0%,100%{transform:rotate(0)}15%{transform:rotate(18deg)}30%{transform:rotate(-16deg)}45%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}75%{transform:rotate(4deg)}}
+@keyframes pulse-soft{0%,100%{box-shadow:0 0 0 0 rgba(255,122,107,.45)}70%{box-shadow:0 0 0 10px rgba(255,122,107,0)}}
+@keyframes pulse-teal{0%,100%{box-shadow:0 5px 0 var(--green-dark),0 0 0 0 rgba(18,165,148,.45)}70%{box-shadow:0 5px 0 var(--green-dark),0 0 0 14px rgba(18,165,148,0)}}
+@keyframes dash-move{to{stroke-dashoffset:-36}}
+@keyframes grow{from{transform:scaleX(0)}}
+@keyframes wiggle{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@keyframes dropIn{0%{opacity:0;transform:translateY(-40px) rotate(-8deg) scale(.8)}60%{opacity:1;transform:translateY(6px) rotate(3deg)}100%{opacity:1;transform:none}}
+@keyframes drift-up{0%{transform:translateY(0) rotate(0);opacity:0}10%,85%{opacity:var(--o,.5)}100%{transform:translateY(-120vh) rotate(var(--r,200deg));opacity:0}}
+@keyframes marquee{to{transform:translateX(-50%)}}
+@keyframes sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+@keyframes shine{0%{transform:translateX(-140%) skewX(-18deg)}60%,100%{transform:translateX(380%) skewX(-18deg)}}
+@keyframes modalPop{0%{opacity:0;transform:translateY(26px) scale(.94)}70%{opacity:1;transform:translateY(-4px) scale(1.01)}100%{transform:none}}
+
+/* ---------- page & hero entrance ---------- */
+.hero .hero-grid{position:relative;overflow:hidden;animation:pageIn .6s var(--ease-out) both}
+.hero h1{animation:rise .55s var(--ease-out) .1s both}
+.hero-copy{animation:rise .55s var(--ease-out) .22s both}
+.hero-actions{animation:rise .55s var(--ease-out) .34s both}
+.proof-row{animation:rise .5s ease .46s both}
+.proof-item{animation:dropIn .7s var(--spring) both}
+.proof-item:nth-child(1){animation-delay:.55s}.proof-item:nth-child(2){animation-delay:.67s}.proof-item:nth-child(3){animation-delay:.79s}
+.hero-art{animation:rise .7s ease .3s both}
+.float-card.one{animation:float-y 3.6s ease-in-out infinite}
+.float-card.two{animation:float-y 4.4s ease-in-out .6s infinite}
+.hero-sticker{animation:sway 3.2s ease-in-out infinite}
+.mini-icon{animation:bob 3s ease-in-out infinite}
+.float-card.two .mini-icon{animation-delay:.68s}
+.hero h1 span{display:inline-block;animation:wiggle 2.4s ease-in-out 1.3s infinite;transform-origin:50% 70%}
+
+/* hero decorations (injected by animations.js, aria-hidden) */
+.fx-deco{position:absolute;pointer-events:none;z-index:0}
+.hero .hero-grid > :not(.fx-deco){position:relative;z-index:1}
+.fx-star{width:16px;height:16px;color:#ffd75e;animation:twinkle 2.4s ease-in-out infinite}
+.fx-star svg{width:100%;height:100%;display:block}
+.fx-dot{border-radius:50%;background:rgba(255,215,94,.9);animation:float-y 5.4s ease-in-out infinite}
+.fx-dot.mint{background:rgba(255,255,255,.35);animation:float-y2 6.4s ease-in-out infinite}
+.fx-ring{width:110px;height:110px;border-radius:50%;border:10px dashed rgba(255,255,255,.18);animation:spin 26s linear infinite}
+
+/* background drifting shapes */
+.fx-drift-layer{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:-1}
+.fx-drift{position:absolute;bottom:-60px;border-radius:12px;opacity:0;animation:drift-up var(--d,20s) linear var(--delay,0s) infinite}
+
+/* ---------- marquee ribbon ---------- */
+.fx-ribbon{position:relative;z-index:1;margin:18px auto 8px;transform:rotate(-1.2deg);background:var(--ink,#2b2a3d);border-radius:999px;padding:12px 0;overflow:hidden;box-shadow:0 10px 24px rgba(43,42,61,.18)}
+.fx-ribbon-track{display:flex;gap:34px;width:max-content;animation:marquee 30s linear infinite;white-space:nowrap}
+.fx-ribbon-item{display:inline-flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:13.5px}
+.fx-ribbon-item i{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-style:normal;font-size:13px}
+.fx-ribbon-item b{color:#ffc83d;font-size:12px}
+.fx-ribbon:hover .fx-ribbon-track{animation-play-state:paused}
+
+/* ---------- buttons: springy press + shine ---------- */
+.btn,.chip,.tiny-btn,.icon-btn,.account-tab,.category-card,.heart,.view-switch button{transition:transform .26s var(--spring),box-shadow .26s ease,background-color .25s ease,color .25s ease}
+.btn:hover,.tiny-btn:hover,.icon-btn:hover{transform:translateY(-2px)}
+.btn:active,.tiny-btn:active,.icon-btn:active,.chip:active{transform:translateY(3px) scale(.98)}
+.btn-primary,.search-submit,.hero .btn-primary,.demand-content .btn{position:relative;overflow:hidden;isolation:isolate}
+.btn-primary::after,.search-submit::after,.demand-content .btn::after{content:"";position:absolute;top:-10%;bottom:-10%;left:0;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-140%) skewX(-18deg);animation:shine 3.4s ease-in-out infinite;pointer-events:none;z-index:2}
+.listing-card:nth-child(4n+2) .btn-primary::after{animation-delay:.35s;animation-duration:3.7s}
+.listing-card:nth-child(4n+3) .btn-primary::after{animation-delay:.7s;animation-duration:4.2s}
+.listing-card:nth-child(4n+4) .btn-primary::after{animation-delay:1.05s;animation-duration:4.7s}
+.hero .btn-primary span{animation:bob 2.4s ease-in-out infinite}
+.chip.fx-pop,.account-tab.fx-pop,.view-switch .fx-pop{animation:pop .45s var(--spring)}
+.heart.fx-pop{animation:wob .55s var(--spring)}
+
+/* ---------- cards: staggered pop-in + hover ---------- */
+.fx-reveal{opacity:0}
+.fx-reveal.fx-in{animation:cardIn .55s var(--ease-out) var(--fx-delay,0s) both}
+.fx-rise{opacity:0}
+.fx-rise.fx-in{animation:rise .55s var(--ease-out) var(--fx-delay,0s) both}
+.listing-card,.category-card,.how-card,.wanted-card,.account-row,.notification-item{transition:transform .32s var(--spring),box-shadow .3s ease}
+.listing-card:hover,.how-card:hover,.wanted-card:hover{transform:translateY(-6px) rotate(-.4deg)}
+.category-card:hover{transform:translateY(-4px)}
+.category-symbol{animation:bob 2.6s ease-in-out infinite}
+.category-card:nth-child(2) .category-symbol{animation-delay:.34s;animation-duration:2.95s}
+.category-card:nth-child(3) .category-symbol{animation-delay:.68s;animation-duration:3.3s}
+.category-card:nth-child(4) .category-symbol{animation-delay:1.02s;animation-duration:3.65s}
+.category-card:nth-child(5) .category-symbol{animation-delay:1.36s;animation-duration:3.8s}
+.category-card:hover .category-symbol{animation:wob .55s var(--spring)}
+.listing-card:hover .listing-image{transform:scale(1.06) rotate(.6deg)}
+.tag{animation:wiggle 2.4s ease-in-out infinite;transform-origin:20% 50%}
+.step-num{transition:transform .3s var(--spring)}
+.how-card.fx-in .step-num{animation:pop .45s var(--spring) calc(var(--fx-delay,0s) + .25s) both}
+.how-card:hover .step-num{animation:jump .7s var(--spring)}
+.trust-symbol{animation:bob 3.4s ease-in-out infinite}
+.availability-label span{animation:pulse-soft 1.8s ease-out infinite;border-radius:50%}
+.status-pill.fx-in{animation:stamp .55s var(--spring) both}
+.milestone.done{animation:dropIn .7s var(--spring) both}
+.finance-grid div{animation:rise .5s var(--ease-out) both}
+.finance-grid div:nth-child(2){animation-delay:.08s}.finance-grid div:nth-child(3){animation-delay:.16s}.finance-grid div:nth-child(4){animation-delay:.24s}.finance-grid div:nth-child(5){animation-delay:.32s}.finance-grid div:nth-child(6){animation-delay:.4s}
+.booking-total,.sum{animation:rise .45s var(--ease-out) .1s both}
+.promptpay-qr{animation:pop .55s var(--spring) both}
+
+/* ---------- nav, brand, chat, bell ---------- */
+.brand-mark{animation:bob 3.4s ease-in-out infinite}
+.notification-nav.fx-has-new svg{animation:ring 1.4s ease-in-out infinite;transform-origin:50% 10%}
+.notification-count:not([hidden]){animation:pulse-soft 1.8s ease-out infinite}
+.chat-launcher{animation:float-y 4.4s ease-in-out infinite}
+.chat-launcher:hover{animation:pulse-teal 1.4s ease-out infinite}
+.nav-links a{transition:color .3s ease}
+
+/* ---------- modal & toast ---------- */
+.modal-backdrop.open{animation:fadeIn .25s ease both}
+.modal-backdrop.open .modal{animation:modalPop .45s var(--spring) both}
+.modal-content .form-field,.modal-content .detail-row,.modal-content .account-row{animation:rise .45s var(--ease-out) both}
+.modal-content .form-field:nth-child(2){animation-delay:.04s}.modal-content .form-field:nth-child(3){animation-delay:.08s}.modal-content .form-field:nth-child(4){animation-delay:.12s}.modal-content .form-field:nth-child(5){animation-delay:.16s}.modal-content .form-field:nth-child(n+6){animation-delay:.2s}
+.toast.show{animation:toastIn .45s var(--spring) both}
+@media (max-width:700px){.modal-backdrop.open .modal{animation:drawerU .42s var(--spring) both}}
+
+/* map: animated dashed fallback route + pins drop */
+.leaflet-overlay-pane path[stroke-dasharray]{animation:dash-move 1.4s linear infinite}
+.meeting-pin{animation:dropIn .6s var(--spring) both}
+.meeting-pin-me{animation:pulse-soft 1.8s ease-out infinite}
+.price-marker{animation:pop .45s var(--spring) both}
+
+/* ---------- confetti & click burst (created by animations.js) ---------- */
+.fx-confetti{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+.fx-confetti i{position:absolute;top:0;width:10px;height:14px;border-radius:3px;animation:fall var(--d,2.2s) var(--delay,0s) cubic-bezier(.3,.6,.6,1) both}
+.fx-burst{position:fixed;pointer-events:none;z-index:95}
+.fx-burst i{position:absolute;left:0;top:0;width:8px;height:8px;border-radius:50%;animation:burst .65s var(--ease-out) forwards}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .fx-reveal,.fx-rise{opacity:1!important}
+  .fx-drift-layer,.fx-confetti,.fx-burst{display:none!important}
+}

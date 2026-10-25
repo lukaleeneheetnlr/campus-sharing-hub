@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { DEFAULT_FEE_SETTINGS, computeServiceFee, rentDue, isValidPromptPayId, promptPayQrDataUrl } from './payment-helpers.js';
+import './animations.js';
 import { ADDRESS_FIELDS, formatThaiAddress, parseThaiAddress, geocodeFreeTextAddress } from './address-geocode.js';
 import { createMeetingPointPicker, createRouteMap, getCurrentPosition, googleMapsDirectionsUrl, formatDistance, formatDuration, toPoint, isPoint } from './meeting-map.js';
 let activeModalMap = null;
